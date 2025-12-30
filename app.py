@@ -1,341 +1,271 @@
 import streamlit as st
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 import pandas as pd
 import plotly.express as px
 import json
-import os
+from io import StringIO
 
-# --------------------------------------------------------------------------------
-# 1. Page Configuration & Professional Design System
-# --------------------------------------------------------------------------------
+# ==============================================================================
+# 1. CONFIGURATION & SETUP
+# ==============================================================================
+
 st.set_page_config(
-    page_title="Traceback",
+    page_title="Traceback v1",
     page_icon="🛡️",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="expanded"
 )
 
-# Professional SaaS CSS Injection
+# Force Dark Mode and Clean UI
 st.markdown("""
 <style>
-    /* Global Typography & Background */
+    /* Global Cleanliness */
     .stApp {
-        background-color: #1A1C20; /* Neutral Charcoal */
-        color: #E0E0E0;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        background-color: #0E1117;
+        color: #FAFAFA;
+        font-family: 'Inter', sans-serif;
     }
-
-    /* Metric Cards (Calm) */
-    .pro-card {
-        background-color: #26292E;
-        border: 1px solid #3E424B;
+    
+    /* Metrics Cards */
+    div[data-testid="stMetric"] {
+        background-color: #262730;
         border-radius: 8px;
-        padding: 20px;
-        text-align: left;
-        box-shadow: 0 1px 3px rgba(0,0,0,0.12);
-        transition: all 0.2s ease;
+        padding: 15px;
+        border: 1px solid #363945;
     }
     
-    .pro-card:hover {
-        border-color: #4DB6AC; /* Teal Accent hover */
-    }
-
-    .pro-card .label {
-        color: #9AA0A6;
-        font-size: 0.85rem;
-        font-weight: 500;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-        margin-bottom: 8px;
-    }
+    /* Hide Deploy Button & Footer */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
     
-    .pro-card .value {
-        color: #FFFFFF;
-        font-size: 1.8rem;
-        font-weight: 600;
-    }
-
-    .pro-card .sub-value {
-        color: #4DB6AC; /* Teal Accent */
-        font-size: 0.9rem;
-        margin-left: 5px;
-    }
-
     /* Headers */
     h1, h2, h3 {
-        color: #FFFFFF;
+        color: #E0E0E0 !important;
         font-weight: 600;
-        letter-spacing: -0.5px;
-    }
-    
-    /* DataFrame */
-    .stDataFrame {
-        border: 1px solid #3E424B;
-        border-radius: 8px;
-    }
-
-    /* Buttons */
-    .stButton > button {
-        background-color: #4DB6AC;
-        color: #1A1C20;
-        border: none;
-        border-radius: 4px;
-        font-weight: 600;
-        padding: 0.5rem 1rem;
-    }
-    .stButton > button:hover {
-        background-color: #80CBC4;
-        color: #1A1C20;
-    }
-
-    /* Chat Messages */
-    .stChatMessage {
-        background-color: #26292E;
-        border-radius: 8px;
-        border: 1px solid #3E424B;
     }
 </style>
 """, unsafe_allow_html=True)
 
-# --------------------------------------------------------------------------------
-# 2. Logic: Analysis & Helpers
-# --------------------------------------------------------------------------------
-def analyze_logs_with_gemini(log_content):
-    """
-    Sends log content to Gemini for security analysis.
-    """
+# ==============================================================================
+# 2. HELPER FUNCTIONS
+# ==============================================================================
+
+def init_client():
+    """Initialize the new GenAI Client."""
     try:
-        # User secrets use [google]
         api_key = st.secrets["google"]["api_key"]
-        genai.configure(api_key=api_key)
-    except Exception:
-        try:
-             # Fallback if they changed it
-             api_key = st.secrets["gemini"]["api_key"]
-             genai.configure(api_key=api_key)
-        except:
-             st.error("Configuration Error: API Key missing in secrets.toml (checked [google] and [gemini])")
-             return None
-
-    # Robust Model Selection Strategy
-    model = None
-    # Prioritize 2.0/3.0 flash, fallback to Pro
-    candidates = ['gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-pro']
-    
-    for model_name in candidates:
-        try:
-            model = genai.GenerativeModel(model_name)
-            # Test simple generation to verify access
-            # This might be slow so we skip explicit test and just return the object
-            # But the error usually happens at generate_content time.
-            # We will use this model object.
-            break 
-        except:
-            continue
-            
-    if not model:
-        # Fallback to hardcoded string if loop fails strangely
-        model = genai.GenerativeModel('gemini-pro')
-
-    system_instruction = """
-    You are a Senior Security Analyst. Your goal is to identify security events from logs and explain them clearly to a junior developer.
-    
-    Output MUST be valid JSON:
-    {
-        "threats": [
-            {
-                "timestamp": "string",
-                "attacker_ip": "string",
-                "attack_type": "string (SQL Injection, Brute Force, XSS)",
-                "risk_level": "string (Low, Medium, High, Critical)",
-                "status": "string (Allowed/Blocked)",
-                "explanation": "string (Educational explanation)",
-                "recommended_action": "string (Configuration/Rule)"
-            }
-        ],
-        "summary": {
-            "total_events": int,
-            "high_risk_count": int,
-            "most_active_ip": "string",
-            "active_ip_count": int
-        }
-    }
-    """
-
-    prompt = f"""
-    {system_instruction}
-    
-    ANALYZE THE FOLLOWING LOGS:
-    {log_content[:40000]} 
-    """
-
-    try:
-        with st.spinner(f"Analyzing log data..."):
-            response = model.generate_content(prompt, generation_config={"response_mime_type": "application/json"})
-            return json.loads(response.text)
+        return genai.Client(api_key=api_key)
     except Exception as e:
-        # Deep Fallback if 404 occurs during generation
-        if "404" in str(e) or "not found" in str(e).lower():
-            try:
-                 fallback = genai.GenerativeModel('gemini-pro')
-                 response = fallback.generate_content(prompt)
-                 # Pro doesn't enforce JSON mode strictly, try to parse
-                 text = response.text.replace("```json", "").replace("```", "").strip()
-                 return json.loads(text)
-            except Exception as e2:
-                 st.error(f"Analysis Error (Fallback failed): {str(e2)}")
-                 return None
-        st.error(f"Analysis Error: {str(e)}")
+        st.error(f"⚠️ API Key error: {e}")
         return None
 
-def ask_log_assistant(question, log_context, chat_history):
-    # Chat Model Logic
+def parse_log_file(uploaded_file):
+    """Basic Parsing: Reads lines."""
     try:
-        api_key = st.secrets["google"]["api_key"]
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel('gemini-2.0-flash')
-    except:
-        model = genai.GenerativeModel('gemini-pro')
+        stringio = StringIO(uploaded_file.getvalue().decode("utf-8"))
+        lines = stringio.readlines()
+        return lines
+    except Exception as e:
+        st.error(f"Error reading file: {e}")
+        return []
 
-    prompt = f"""
-    You are the Traceback Assistant, a professional security educator.
-    CONTEXT: {json.dumps(log_context)}
-    CHAT HISTORY: {chat_history}
-    USER QUESTION: {question}
-    Answer professionally, concisely, and helpfully.
-    """
-    try:
-        response = model.generate_content(prompt)
-        return response.text
-    except:
-        return "I'm having trouble connecting to the AI right now. Please try again."
+# ==============================================================================
+# 3. AI PROMPTS
+# ==============================================================================
 
-# --------------------------------------------------------------------------------
-# 3. Main Interface
-# --------------------------------------------------------------------------------
+SYSTEM_PROMPT = """You are a Senior Security Analyst at Traceback specializing in
+digital forensics and log analysis.
 
-with st.sidebar:
-    st.markdown("### Traceback")
-    st.caption("v3.0 | Log Analysis Platform")
-    st.markdown("---")
-    uploaded_file = st.file_uploader("Upload Log File", type=["log", "txt", "csv"])
-    st.markdown("---")
-    st.info("Upload server logs to identify security risks and learning opportunities.")
+Responsibilities:
+1. Analyze provided log data to identify suspicious security patterns (Brute Force, SQLi, XSS).
+2. Assign a Risk Score from 0–10:
+   - 0–3: Informational
+   - 4–7: Warning
+   - 8–10: Critical
+3. Frame findings as "suspicious patterns" or "potential attack indicators". Do NOT claim certainty.
+4. Explain findings in a way that teaches the user.
 
-if uploaded_file is not None:
-    try:
-        log_content = uploaded_file.getvalue().decode("utf-8")
-    except:
-        log_content = uploaded_file.getvalue().decode("utf-8", errors="ignore")
+Output Format (JSON):
+{
+  "summary_metrics": {
+    "total_threats": int,
+    "most_active_ip": "string",
+    "global_risk_score": int
+  },
+  "findings": [
+    {
+      "timestamp": "string",
+      "attacker_ip": "string",
+      "attack_type": "string",
+      "risk_score": int,
+      "status": "string (Observed/Allowed/Blocked)"
+    }
+  ],
+  "educational_explanation": "markdown string explaining the top threats",
+  "mitigation_suggestions": {
+    "iptables": ["cmd1", "cmd2"],
+    "ufw": ["cmd1"],
+    "aws_sg": ["description of rule"]
+  }
+}
+"""
 
-    if 'analysis_result' not in st.session_state:
-        st.session_state.analysis_result = analyze_logs_with_gemini(log_content)
-
-    results = st.session_state.analysis_result
+def analyze_logs_with_ai(client, log_lines):
+    """Sends logs to Gemini for structured analysis using the new SDK."""
+    # Cap at 5000 lines
+    log_content = "".join(log_lines[:5000])
     
-    if results:
-        threats = results.get("threats", [])
-        summary = results.get("summary", {})
+    prompt = f"""
+    Analyze the following log entries based on the system instructions.
+    
+    LOG DATA:
+    {log_content}
+    
+    Respond strictly in valid JSON.
+    """
+    
+    try:
+        # New SDK Call Structure - Using Gemini 3 Preview as verified available
+        response = client.models.generate_content(
+            model="gemini-3-flash-preview",
+            contents=[SYSTEM_PROMPT, prompt],
+            config=types.GenerateContentConfig(
+                response_mime_type="application/json"
+            )
+        )
+        return json.loads(response.text)
+    except Exception as e:
+        st.error(f"AI Analysis failed: {e}")
+        return None
 
-        # --- Top Metrics ---
-        col1, col2, col3 = st.columns(3)
+def chat_investigation(client, log_lines, user_question):
+    """Context-aware chat about specific logs."""
+    log_content = "".join(log_lines[:2000])
+    
+    chat_prompt = f"""
+    CONTEXT:
+    {log_content}
+    
+    USER QUESTION:
+    {user_question}
+    
+    INSTRUCTIONS:
+    - Answer ONLY using the provided log data.
+    - If the answer isn't in the logs, refuse to answer.
+    - Be educational and professional.
+    """
+    
+    try:
+        response = client.models.generate_content(
+            model="gemini-3-flash-preview",
+            contents=[SYSTEM_PROMPT, chat_prompt]
+        )
+        return response.text
+    except Exception as e:
+        return f"Error investigating: {e}"
+
+# ==============================================================================
+# 4. MAIN APP LOGIC
+# ==============================================================================
+
+def main():
+    # Sidebar
+    st.sidebar.title("🛡️ Traceback v1")
+    st.sidebar.markdown("*Democratizing cybersecurity understanding for everyone.*")
+    
+    uploaded_file = st.sidebar.file_uploader("Upload Log File", type=['log', 'txt', 'csv'])
+    
+    # Initialize Client
+    client = init_client()
+    
+    if uploaded_file and client:
+        # Analyze once per file
+        if 'last_uploaded' not in st.session_state or st.session_state.last_uploaded != uploaded_file.name:
+            with st.spinner("🔍 Analyzing patterns..."):
+                log_lines = parse_log_file(uploaded_file)
+                analysis_result = analyze_logs_with_ai(client, log_lines)
+                
+                if analysis_result:
+                    st.session_state.analysis = analysis_result
+                    st.session_state.log_lines = log_lines
+                    st.session_state.last_uploaded = uploaded_file.name
+                else:
+                    st.stop()
         
-        def pro_metric(label, value, subtext, col):
-            with col:
-                st.markdown(f"""
-                <div class="pro-card">
-                    <div class="label">{label}</div>
-                    <div class="value">{value}<span class="sub-value">{subtext}</span></div>
-                </div>
-                """, unsafe_allow_html=True)
-
-        pro_metric("Events Detected", summary.get("total_events", 0), "Total", col1)
-        pro_metric("Most Active Source", summary.get("most_active_ip", "N/A"), f"({summary.get('active_ip_count', 0)} events)", col2)
-        pro_metric("Critical Risks", summary.get("high_risk_count", 0), "Direct Threats", col3)
-
-        st.markdown("---")
-
-        # --- Main Content (Table + Chart) ---
-        col_table, col_chart = st.columns([0.65, 0.35])
-
-        with col_table:
-            st.subheader("Security Event Log")
-            if threats:
-                df = pd.DataFrame(threats)
-                # Ensure columns exist
-                needed_cols = ['timestamp', 'risk_level', 'attack_type', 'attacker_ip', 'status']
-                for c in needed_cols:
-                    if c not in df.columns:
-                        df[c] = "N/A"
-                
-                display_df = df[needed_cols]
-                
-                st.dataframe(
-                    display_df,
-                    use_container_width=True,
-                    height=450,
-                    column_config={
-                        "timestamp": "Timestamp",
-                        "risk_level": "Risk",
-                        "attack_type": "Event Type",
-                        "attacker_ip": "Source IP",
-                        "status": "Outcome"
-                    },
-                    hide_index=True
-                )
-            else:
-                st.success("No security events identified.")
-
-        with col_chart:
-            st.subheader("Event Distribution")
-            if threats and not df.empty:
-                # Professional Donut Chart (Teal Palette)
-                # Colors: Teal, Slate, Grey tones
-                pro_colors = ['#4DB6AC', '#80CBC4', '#B2DFDB', '#546E7A', '#78909C']
-                
-                if 'attack_type' in df.columns:
-                    fig = px.pie(df, names='attack_type', hole=0.7, color_discrete_sequence=pro_colors)
-                    fig.update_layout(
-                        paper_bgcolor='rgba(0,0,0,0)', 
-                        plot_bgcolor='rgba(0,0,0,0)',
-                        font_color="#E0E0E0",
-                        showlegend=True,
-                        legend=dict(orientation="h", yanchor="bottom", y=-0.3, xanchor="center", x=0.5),
-                        margin=dict(t=0, b=50, l=0, r=0)
-                    )
-                    fig.update_traces(textinfo='percent')
-                    st.plotly_chart(fig, use_container_width=True)
-
-        st.markdown("---")
-
-        # --- "Ask the Log" Assistant ---
-        st.subheader("Ask the Log")
-        st.caption("Ask questions about specific events to understand the root cause.")
-
-        if "messages" not in st.session_state:
-            st.session_state.messages = []
-
-        for message in st.session_state.messages:
-            with st.chat_message(message["role"]):
-                st.write(message["content"])
-
-        if prompt := st.chat_input("E.g., 'Explain why the SQL Injection attempt was blocked?'"):
-            st.session_state.messages.append({"role": "user", "content": prompt})
-            with st.chat_message("user"):
-                st.write(prompt)
-
-            with st.chat_message("assistant"):
-                with st.spinner("Reasoning..."):
-                    response_text = ask_log_assistant(prompt, results, st.session_state.messages[-5:])
-                    st.write(response_text)
+        # Load from State
+        data = st.session_state.get('analysis', {})
+        metrics = data.get('summary_metrics', {})
+        findings = data.get('findings', [])
+        education = data.get('educational_explanation', "")
+        mitigation = data.get('mitigation_suggestions', {})
+        
+        # ---------------------------------------------------------
+        # Header: Metrics
+        # ---------------------------------------------------------
+        col1, col2, col3 = st.columns(3)
+        col1.metric("Threats Detected", metrics.get('total_threats', 0))
+        col2.metric("Most Active IP", metrics.get('most_active_ip', 'N/A'))
+        col3.metric("Global Risk Score", f"{metrics.get('global_risk_score', 0)}/10")
+        
+        st.divider()
+        
+        # ---------------------------------------------------------
+        # Middle: Deep Dive (Threat Matrix)
+        # ---------------------------------------------------------
+        st.subheader("Deep Dive")
+        if findings:
+            df = pd.DataFrame(findings)
+            cols = ['timestamp', 'attacker_ip', 'attack_type', 'risk_score', 'status']
+            for c in cols:
+                if c not in df.columns: df[c] = 'N/A'
             
-            st.session_state.messages.append({"role": "assistant", "content": response_text})
+            st.dataframe(
+                df[cols],
+                use_container_width=True,
+                column_config={
+                    "risk_score": st.column_config.NumberColumn("Risk", format="%d"),
+                }
+            )
+            
+            st.subheader("Attack Type Distribution")
+            if 'attack_type' in df.columns:
+                counts = df['attack_type'].value_counts()
+                fig = px.bar(counts, orientation='h', color=counts.index, template="plotly_dark")
+                fig.update_layout(showlegend=False, height=300)
+                st.plotly_chart(fig, use_container_width=True)
+        else:
+            st.info("No suspicious patterns detected.")
 
-else:
-    # Empty State
-    st.markdown("""
-    <div style='text-align: center; padding: 100px; color: #9AA0A6;'>
-        <h2>Ready to Analyze</h2>
-        <p>Please upload a log file to begin the review.</p>
-    </div>
-    """, unsafe_allow_html=True)
+        st.divider()
+
+        # ---------------------------------------------------------
+        # Lower: Learn, Investigate, Mitigate
+        # ---------------------------------------------------------
+        
+        with st.expander("🎓 Explain Like I'm a Junior", expanded=True):
+            st.markdown(education)
+
+        with st.expander("🕵️ Ask the log (context-aware)", expanded=True):
+            user_q = st.text_input("Guided investigation:", key="log_q", placeholder="e.g., Why is IP 192.168.1.5 suspicious?")
+            if user_q:
+                with st.spinner("Investigating..."):
+                    answer = chat_investigation(client, st.session_state.log_lines, user_q)
+                    st.markdown(f"**Analyst:** {answer}")
+
+        with st.expander("🛡️ Mitigation Suggestions", expanded=False):
+            st.warning("These are suggestions for review. Do not apply blindly.")
+            tabs = st.tabs(["iptables", "UFW", "AWS Security Groups"])
+            with tabs[0]:
+                for cmd in mitigation.get('iptables', []): st.code(cmd, language='bash')
+            with tabs[1]:
+                for cmd in mitigation.get('ufw', []): st.code(cmd, language='bash')
+            with tabs[2]:
+                for cmd in mitigation.get('aws_sg', []): st.code(cmd, language='text')
+
+    else:
+        st.info("👋 Welcome to Traceback. Upload a log file to begin analysis.")
+        st.caption("Supported: .log, .txt, .csv")
+
+if __name__ == "__main__":
+    main()
