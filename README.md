@@ -25,21 +25,45 @@ TraceBack Sentinel is a **Hybrid Intelligence (ML + LLM)** multi-agent system th
 - **Technical Architecture View** – Accordion deep dives with syntax-highlighted attack vectors.
 - **Innovation** – 1-click mock "Deploy Architecture Patch" capability to showcase proactive action.
 
-## 💼 Business Impact
+## 💼 Business Impact & Impact Model
 
-By adopting a Hybrid ML+LLM strategy, **TraceBack Sentinel** achieves the following quantified business impacts:
-- **90% Operating Cost Reduction**: By locally filtering out benign "Normal" traffic via the NSL-KDD Machine Learning model, API calls to the LLM are drastically reduced. You only pay for token computation on *verified threats*.
-- **10x Faster Time-to-Resolution (MTTR)**: Local ML inference takes milliseconds. Only actionable, anomalous log data is relayed to the Groq Llama 3 model for rapid, ultra-low latency cognitive review.
-- **Continuous Compliance Posture**: Automated integration directly links threats to PCI-DSS Req 10 and GDPR Art 32—reducing audit preparation time by weeks.
+By adopting a Hybrid ML+LLM strategy, **TraceBack Sentinel** achieves the following quantified results:
+- **95% Operating Cost Reduction**: $346,750 / year saved by filtering out benign traffic via the local ML Bouncer.
+- **99.9% Faster MTTR**: From 1,666 manual analyst hours to <15 minutes of automated reasoning.
+- **Continuous Compliance**: Automated 1:1 mapping of threats to PCI-DSS Req 10 & GDPR Art 32.
 
-## 🚀 Quick Start
+> [!TIP]
+> **View the full Impact Model & Math:** [IMPACT_MODEL.md](file:///e:/projects/TraceBack/FINAL/IMPACT_MODEL.md)
 
+## 🚀 Quick Start & Setup
+
+### 1. Prerequisites
+- **Python**: 3.9+ 
+- **Groq API Key**: [Get one here](https://console.groq.com/keys)
+
+### 2. Installation
 ```bash
-# Clone, install dependencies, and run in one command
-git clone https://github.com/yughpatel/TraceBack.git && cd TraceBack && pip install -r requirements.txt && streamlit run app.py
+# Clone the repository
+git clone https://github.com/yughpatel/TraceBack.git
+cd TraceBack
+
+# Install dependencies
+pip install -r requirements.txt
 ```
 
-*Note: You can easily input your Groq API Key directly inside the app sidebar once it launches.*
+### 3. API Key Configuration
+You can configure your **Groq API Key** in two ways:
+- **Option A (Persistent)**: Create a file at `.streamlit/secrets.toml` with the following content:
+  ```toml
+  [groq]
+  api_key = "gsk_your_key_here"
+  ```
+- **Option B (Rapid Setup)**: Enter the key directly into the **Sidebar UI** after launching the app.
+
+### 4. Launch Application
+```bash
+streamlit run app.py
+```
 
 ## 📁 Project Structure
 
