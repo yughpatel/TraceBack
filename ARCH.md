@@ -87,3 +87,10 @@ Everything renders functionally via `Streamlit`.
 - **Business Impact Dashboards**: Real-time rendering of executive operational/monetary risk and live-demo flashing alert banners during critical incidents.
 - **Deep Architecture Dives**: Natively presents raw log code with syntax highlighting coupled with targeted `technical_architecture_flaw` analysis.
 - **Deployable Remediation**: Presents an interactive "Deploy Architecture Patch" capability to showcase zero-downtime hot-patch innovation.
+
+### 🛡️ 6. Resilience & Error Handling
+TraceBack Sentinel is designed to be **fail-safe** for enterprise environments:
+- **LLM API Fallbacks**: If the primary Groq model endpoint fails or hits rate limits, the `AnalystAgent` contains logic to either retry with an exponential backoff or return a "Safe Mode" pre-canned response to ensure the user interface never crashes.
+- **ML Bouncer Failure Mode**: If feature extraction for the KNN model fails due to malformed logs, the system **defaults to a full LLM analysis**. We prioritize security over cost-savings in uncertain edge cases.
+- **Malformed Log Handling**: The `SieveAgent` uses robust regex patterns combined with `try-each` logic. If a single log line is corrupt, it is skipped while the rest of the batch continues processing, preventing a single bad entry from stalling the entire pipeline.
+- **Stateless Privacy**: No data is persisted. If the Streamlit session times out or the server reboots, all PII-redacted memory is wiped, ensuring zero data leakage.
