@@ -43,7 +43,5 @@ A human analyst takes ~2 minutes to verify one anomalous log.
 > [!IMPORTANT]
 > **Efficiency Gain**: 99.9% reduction in technical verification lag.
 
----
-
-## Summary
+---## Summary
 By using the local ML bouncer to pre-filter traffic, we convert what would be a massive cloud bill and a humanly impossible workload into a $50/day automated operation.
