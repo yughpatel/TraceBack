@@ -1,7 +1,5 @@
 # TraceBack Sentinel
 
-> **ET Gen AI Hackathon – Problem Statement 5**
-
 TraceBack Sentinel is a hybrid log intelligence platform. It uses a mix of local ML and LLMs to scan server logs, flag threats, and explain what's actually happening without burning through thousands of dollars in API tokens.
 
 ## The Approach: "The Bouncer"
