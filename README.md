@@ -1,83 +1,77 @@
-# 🛡️ TraceBack Sentinel – AI-Powered Multi-Agent Log Intelligence
+# TraceBack Sentinel
 
-> **ET Gen AI Hackathon – Problem Statement 5: Domain-Specialized AI Agents**
+> **ET Gen AI Hackathon – Problem Statement 5**
 
-TraceBack Sentinel is a **Hybrid Intelligence (ML + LLM)** multi-agent system that automates server log analysis. By utilizing a **Bouncer Architecture**, TraceBack ensures high-speed efficiency and deep reasoning.
+TraceBack Sentinel is a hybrid log intelligence platform. It uses a mix of local ML and LLMs to scan server logs, flag threats, and explain what's actually happening without burning through thousands of dollars in API tokens.
 
-## 🧠 Core Innovation: The Hybrid "Bouncer" Architecture
+## The Approach: "The Bouncer"
 
-Standard LLM log analysis is prohibitively expensive ($1,000+/day for 1M logs). **TraceBack Sentinel** solves this through a specialized **Classify-First, Explain-Second** workflow:
+Running every log line through an LLM is overkill and too expensive ($1k+/day for a million logs). We built a **Classify-First, Explain-Second** pipeline:
 
-1.  **Local ML Bouncer (KNN)**: Filters 95% of benign traffic locally at zero variable cost.
-2.  **Groq Llama 3 Agent**: Only invoked for anomalous traffic to provide **Reasoned Security** (Forensics + Logic).
-3.  **Result**: **95% Cost Reduction** and **99.9% Faster MTTR** compared to manual or pure-LLM SOC operations.
+1.  **Local ML Filter**: A KNN model acts as a "bouncer." It tosses out 95%+ of benign traffic locally (zero cost, zero latency).
+2.  **Groq Analyst**: Only the weird/anomalous logs get sent to Llama 3 for deep reasoning (Forensics, MITRE mapping, and logic).
+3.  **Result**: 95% cheaper than pure LLM setups and way faster than manual SOC reviews.
 
-## 🎬 Demo Highlights & Scenarios
+## What's in the box?
 
-When evaluating the platform, look for these high-impact features in the **`app.py`** dashboard:
+Check these out in the **`app.py`** dashboard:
 
-- **⚠️ Live Threat Feed**: Watch the dashboard pulse with **Critical Alerts** when high-risk events (SQLi/XSS) are detected.
-- **💼 Business Impact Panel**: Executive-ready translation of technical logs into "Downtime Risk" and "Financial Exposure" metrics.
-- **🎓 Vernacular Support**: Toggle the **Hindi** or **Gujarati** explanations to see how we make security accessible to regional IT teams.
-- **🚀 1-Click Hot-Patch**: Use the "Deploy Architecture Patch" button to witness a zero-downtime remediation simulation.
-- **📝 Audit Trail**: Expand any finding to reveal the **Evidence** (raw log snippet) and **Rationale** (step-by-step logic) for total transparency.
+- **Live Threat Feed**: Real-time pulses for detected attacks (SQLi, XSS, etc.).
+- **Impact Panel**: Technical logs converted into business risk (Downtime & Financial exposure).
+- **Multilingual Support**: Explanations available in **Hindi** and **Gujarati** for regional teams.
+- **1-Click Remediation**: A simulation to deploy architecture patches instantly.
+- **Audit Logs**: Deep dives into the **Evidence** and **Rationale** for every alert.
 
-## 🚀 Quick Start & Setup
+## Setup
 
 ### 1. Prerequisites
-- **Python**: 3.9+ 
-- **Groq API Key**: [Get one here](https://console.groq.com/keys)
+- Python 3.9+ 
+- [Groq API Key](https://console.groq.com/keys)
 
-### 2. Installation
+### 2. Install
 ```bash
-# Clone the repository
 git clone https://github.com/yughpatel/TraceBack.git
 cd TraceBack
-
-# Install dependencies
 pip install -r requirements.txt
 ```
 
-### 3. API Key Configuration
-You can configure your **Groq API Key** in two ways:
-- **Option A (Persistent)**: Create a file at `.streamlit/secrets.toml` with the following content:
-  ```toml
-  [groq]
-  api_key = "gsk_your_key_here"
-  ```
-- **Option B (Rapid Setup)**: Enter the key directly into the **Sidebar UI** after launching the app.
+### 3. Config
+Add your key in `.streamlit/secrets.toml`:
+```toml
+[groq]
+api_key = "gsk_your_key_here"
+```
+*Or just paste it into the sidebar once the app is running.*
 
-### 4. Launch Application
+### 4. Run
 ```bash
 streamlit run app.py
 ```
 
-## 📁 Project Structure
+## Project Structure
 
-```
+```text
 TraceBack/
-├── app.py                      # Streamlit UI & orchestration
+├── app.py                  # Main UI & Orchestration
 ├── agents/
-│   ├── sieve_agent.py          # Agent 1: PII redaction
-│   ├── analyst_agent.py        # Agent 2: Threat detection + MITRE
-│   └── compliance_agent.py     # Agent 3: PCI-DSS / GDPR compliance
+│   ├── sieve_agent.py      # PII Redactor
+│   ├── analyst_agent.py    # Threat Detection (Groq)
+│   └── compliance_agent.py # PCI-DSS / GDPR Auditor
 ├── utils/
-│   ├── sample_logs.py          # Demo-ready sample logs
-│   └── prompts.py              # LLM system prompts
-├── requirements.txt
-└── .streamlit/config.toml
+│   ├── sample_logs.py      # Test data
+│   └── prompts.py          # System prompts
+└── requirements.txt
 ```
 
-## 🧱 Tech Stack
+## Tech Stack
 
-| Layer | Technology |
-|-------|-----------|
-| UI | Streamlit |
-| AI Engine | Groq Llama 3.3 (via groq API) |
-| Log Parsing | Python Regex |
-| Compliance | PCI-DSS v4.0, GDPR |
-| Threat Intel | MITRE ATT&CK Framework |
+- **Frontend**: Streamlit
+- **LLM**: Groq Llama 3.3
+- **ML**: Scikit-learn (KNN)
+- **Compliance**: PCI-DSS v4.0, GDPR
+- **Framework**: MITRE ATT&CK
 
-## 🔒 Privacy
+## Privacy
 
-All logs are processed **in-memory only**. PII (IPs, emails) is redacted by Agent 1 (Sieve) *before* any data reaches the LLM. Nothing is stored on disk.
+Logs stay in memory. Agent 1 (Sieve) redacts sensitive stuff (IPs, emails) locally *before* anything hits an external API. We don't store your data on disk.
+
