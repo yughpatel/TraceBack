@@ -87,5 +87,5 @@ The UI serves as the orchestrator:
 - **API Fallbacks**: If Groq is down or rate-limited, the system falls back to cached responses or a "Safe Mode" output.
 - **Prioritizing Security**: If the ML Bouncer fails to parse a log, we default to full LLM analysis. We'd rather pay for a token than miss an attack.
 - **Deduplication**: Malformed lines are skipped to prevent the whole batch from failing.
-- **Privacy**: No logs are saved to disk. Everything is ephemeral and wiped once the session ends.
+- **Privacy**: No logs are saved to disk. Everything is ephemeral and wiped once the session ends
 
