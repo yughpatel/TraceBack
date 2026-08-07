@@ -1,75 +1,32 @@
-# TraceBack Sentinel
+# TraceBack
 
-TraceBack Sentinel is a hybrid log intelligence platform. It uses a mix of local ML and LLMs to scan server logs, flag threats, and explain what's actually happening without burning through thousands of dollars in API tokens.
+TraceBack is a log analysis tool that helps identify suspicious activity in server logs. It uses a K-Nearest Neighbors (KNN) model to classify log entries as benign or anomalous, cutting down the volume of traffic that needs manual review.
 
-## The Approach: "The Bouncer"
+## Background
 
-Running every log line through an LLM is overkill and too expensive ($1k+/day for a million logs). We built a **Classify-First, Explain-Second** pipeline:
+Originally built for Google for Startups' **"Prompt to Prototype"** program (in partnership with Scaler). Later extended for the **ET GenAI Hackathon**, and used as a final project submission for **CS50x: Introduction to Computer Science (Harvard)**.
 
-1.  **Local ML Filter**: A KNN model acts as a "bouncer." It tosses out 95%+ of benign traffic locally (zero cost, zero latency).
-2.  **Groq Analyst**: Only the weird/anomalous logs get sent to Llama 3 for deep reasoning (Forensics, MITRE mapping, and logic).
-3.  **Result**: 95% cheaper than pure LLM setups and way faster than manual SOC reviews.
+## How it works
 
-## What's in the box?
-
-Check these out in the **`app.py`** dashboard:
-
-- **Live Threat Feed**: Real-time pulses for detected attacks (SQLi, XSS, etc.).
-- **Impact Panel**: Technical logs converted into business risk (Downtime & Financial exposure).
-- **Multilingual Support**: Explanations available in **Hindi** and **Gujarati** for regional teams.
-- **1-Click Remediation**: A simulation to deploy architecture patches instantly.
-- **Audit Logs**: Deep dives into the **Evidence** and **Rationale** for every alert.
-
-## Setup
-
-### 1. Prerequisites
-- Python 3.9+ 
-- [Groq API Key](https://console.groq.com/keys)
-
-### 2. Install
-```bash
-git clone https://github.com/yughpatel/TraceBack.git
-cd TraceBack
-pip install -r requirements.txt
-```
-
-### 3. Config
-Add your key in `.streamlit/secrets.toml`:
-```toml
-[groq]
-api_key = "gsk_your_key_here"
-```
-*Or just paste it into the sidebar once the app is running.*
-
-### 4. Run
-```bash
-streamlit run app.py
-```
-
-## Project Structure
-
-```text
-TraceBack/
-├── app.py                  # Main UI & Orchestration
-├── agents/
-│   ├── sieve_agent.py      # PII Redactor
-│   ├── analyst_agent.py    # Threat Detection (Groq)
-│   └── compliance_agent.py # PCI-DSS / GDPR Auditor
-├── utils/
-│   ├── sample_logs.py      # Test data
-│   └── prompts.py          # System prompts
-└── requirements.txt
-```
+- Log entries (Apache / authentication logs) are parsed and passed through a KNN classifier trained to flag patterns associated with brute-force attempts, SQL injection, and XSS.
+- Flagged entries are highlighted with extracted details — IP addresses, timestamps, and a basic risk score — so the more interesting logs surface first instead of requiring a full manual scan.
+- All processing happens in memory; logs are not stored to disk.
 
 ## Tech Stack
 
-- **Frontend**: Streamlit
-- **LLM**: Groq Llama 3.3
+- **Language**: Python
 - **ML**: Scikit-learn (KNN)
-- **Compliance**: PCI-DSS v4.0, GDPR
-- **Framework**: MITRE ATT&CK
+- **Interface**: Streamlit
 
-## Privacy
+## Status
 
-Logs stay in memory. Agent 1 (Sieve) redacts sensitive stuff (IPs, emails) locally *before* anything hits an external API. We don't store your data on disk.
+Actively being extended — future work includes deeper LLM-based reasoning on flagged entries and broader log format support.
 
+## Setup
+
+```
+git clone https://github.com/yughpatel/TraceBack.git
+cd TraceBack
+pip install -r requirements.txt
+streamlit run app.py
+```
